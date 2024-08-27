@@ -9,9 +9,10 @@
 </head>
 
 <body>
-  <h2>Select Room:</h2>
+  <h2>Current Room:<span id="currentRoomDisplay"></span></h2>
   <button id="room1">Room 1</button>
   <button id="room2">Room 2</button>
+  <p>Current Count: <span id="counter">0</span></p>
   <ul id="messages"></ul>
   <form id="form" action="">
     <input id="input" autocomplete="off" /><button>Send</button>
@@ -23,10 +24,12 @@
 
     document.getElementById( 'room1' ).addEventListener( 'click', () => {
       joinRoom( 'room1' );
+      document.getElementById('currentRoomDisplay').innerText = currentRoom;
     } );
 
     document.getElementById( 'room2' ).addEventListener( 'click', () => {
       joinRoom( 'room2' );
+      document.getElementById('currentRoomDisplay').innerText = currentRoom;
     } );
 
     const joinRoom = ( room ) => {
@@ -38,6 +41,11 @@
       console.log( 'Connected to server' );
     } );
 
+    socket.on( 'roomCounter', ( count ) => {
+      document.getElementById( 'counter' ).innerText = count;
+    } );
+
+
     const form = document.getElementById( "form" );
     const input = document.getElementById( "input" );
     const messages = document.getElementById( "messages" );
@@ -45,7 +53,10 @@
     form.addEventListener( "submit", ( e ) => {
       e.preventDefault();
       if ( input.value ) {
-        socket.emit( "chat message", { room:currentRoom,msg:input.value} );
+        console.log(`Sending chat message to room: ${currentRoom}`);
+        socket.emit( "chat message", { room: currentRoom, msg: input.value } );
+        console.log(`Sending incrementCounter for room: ${currentRoom}`);
+        socket.emit('incrementCounter', currentRoom);
         input.value = "";
       }
     } );

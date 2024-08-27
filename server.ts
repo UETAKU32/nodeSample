@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import { Socket } from "socket.io";
+import { RoomCounter } from "./RoomCounter";
 import path from "path";
 
 dotenv.config();
@@ -18,23 +19,39 @@ app.get( "/", ( request: Request, response: Response ) =>
   response.status( 200 ).sendFile( __dirname + "/index.html" );
 } );
 
+const roomCounters: { [ key: string ]: RoomCounter } = {};
+
 io.on( "connection", ( socket: Socket ) =>
 {
   console.log( "ユーザーが接続しました" )
 
-  socket.on( 'join room', ( room ) =>
+  socket.on( 'join room', ( room: string ) =>
   {
     socket.join( room );
-    console.log( `user joined room: ${ room }` );
+    if ( !roomCounters[ room ] )
+    {
+      roomCounters[ room ] = new RoomCounter();
+    }
+    socket.emit( 'roomCounter', roomCounters[ room ].getCount() );
   } );
+
 
   socket.on( "chat message", ( data ) =>
   {
     const { room, msg } = data;
-    console.log( `ルーム:${ room }｜｜メッセージ:${ msg }` );
     //クライアントサイドにmessageを送り返す
     io.to( room ).emit( "chat message", msg );
   } )
+
+  socket.on( 'incrementCounter', ( room: string ) => 
+  {
+    if ( roomCounters[ room ] )
+    {
+      roomCounters[ room ].increment();
+      console.log(`Counter for room ${room} is now ${roomCounters[room].getCount()}`);
+      io.to( room ).emit( 'roomCounter', roomCounters[ room ].getCount() );
+    }
+  } );
 
   socket.on( 'disconnect', () =>
   {
